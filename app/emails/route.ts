@@ -5,10 +5,16 @@ import { google } from "googleapis";
 import { getServerAuthSession } from "@/lib/auth";
 
 // Helper to extract a specific header from Gmail API headers array
-function getHeader(headers: { name: string; value: string }[], headerName: string) {
-  const found = headers.find(h => h.name.toLowerCase() === headerName.toLowerCase());
-  return found?.value || "";
+function getHeader(
+  headers: { name?: string | null; value?: string | null }[],
+  name: string
+): string {
+  const found = headers.find(
+    (h) => (h.name?.toLowerCase() ?? "") === name.toLowerCase()
+  );
+  return (found?.value as string) || "";
 }
+
 
 // Helper to extract plain text body from message payload
 function getPlainTextBody(payload: any): string {
