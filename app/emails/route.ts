@@ -31,7 +31,7 @@ function getPlainTextBody(payload: any): string {
 export async function GET(req: NextRequest) {
   // Get user session and access token
   const session = await getServerAuthSession();
-  const token = session?.access_token;
+const token = (session as any)?.access_token;
 
   if (!session || !token) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
