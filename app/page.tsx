@@ -1,199 +1,80 @@
-// /app/page.tsx
-
 "use client";
-import React, { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 
-// ...other imports
-
-type Email = {
-  id: string;
-  subject: string;
-  from: string;
-  date: string;
-  snippet: string;
-  body: string;
-  category?: string;
-};
-
-type GroupedEmails = {
-  [category: string]: Email[];
-};
-
-export default function DashboardPage() {
-  const { data: session, status } = useSession();
-
-  // OpenAI API key handled locally
+export default function HomePage() {
+  const { data: session } = useSession();
   const [apiKey, setApiKey] = useState("");
   const [limit, setLimit] = useState(15);
-  const [emails, setEmails] = useState<Email[]>([]);
-  const [grouped, setGrouped] = useState<GroupedEmails>({});
+  const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Load apiKey and emails from localStorage on mount
-  useEffect(() => {
-    setApiKey(localStorage.getItem("openai_api_key") || "");
-    try {
-      const emailsLocal = localStorage.getItem("emails");
-      if (emailsLocal) setEmails(JSON.parse(emailsLocal));
-    } catch { /* ignore */ }
-  }, []);
-
-  // Group emails by category after classification
-  useEffect(() => {
-    const groupedResult: GroupedEmails = {};
-    emails.forEach(email => {
-      const cat = email.category || "uncategorized";
-      if (!groupedResult[cat]) groupedResult[cat] = [];
-      groupedResult[cat].push(email);
-    });
-    setGrouped(groupedResult);
-  }, [emails]);
-
-  // Save API key to localStorage on change
-  function handleApiKeyChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setApiKey(e.target.value);
-    localStorage.setItem("openai_api_key", e.target.value);
-  }
-
-  function handleLimitChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setLimit(Number(e.target.value));
-  }
-
-  // Fetch emails from API
-  async function fetchEmails() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/emails?limit=${limit}`);
-      if (!res.ok) throw new Error("Failed to fetch emails");
-      const { emails } = await res.json();
-      setEmails(emails);
-      localStorage.setItem("emails", JSON.stringify(emails));
-    } catch (err: any) {
-      setError(err?.message || "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Post to classify endpoint
-  async function classifyEmails() {
-    setProcessing(true);
-    setError(null);
-    try {
-      if (!apiKey) throw new Error("Please set your OpenAI API key.");
-      const res = await fetch("/api/classify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emails, openai_api_key: apiKey })
-      });
-      if (!res.ok) throw new Error("Failed to classify emails");
-      const { categorized } = await res.json();
-      setEmails(categorized);
-      localStorage.setItem("emails", JSON.stringify(categorized));
-    } catch (err: any) {
-      setError(err?.message || "Unknown error");
-    } finally {
-      setProcessing(false);
-    }
-  }
-
-  if (status === "loading") {
-    return (
-      <div className="flex justify-center items-center h-screen text-lg">Loading...</div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen gap-6">
-        <h2 className="text-2xl font-bold">Magic Mail Classifier</h2>
-        <button
-          className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
-          onClick={() => signIn("google")}
-        >
-          Sign in with Google
-        </button>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-3xl mx-auto bg-white rounded shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <span className="font-semibold">Signed in as <span className="text-blue-700">{session.user?.email}</span></span>
-          <button className="text-sm text-red-500" onClick={() => signOut()}>Sign out</button>
+    <main className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-800 text-zinc-100 font-sans px-4 py-8 flex flex-col items-center">
+      <header className="w-full max-w-2xl text-center mb-8">
+        <h1 className="text-5xl font-extrabold tracking-tighter bg-gradient-to-r from-purple-500 to-cyan-400 bg-clip-text text-transparent mb-2">Magic Mail Classifier</h1>
+        <p className="text-lg text-zinc-400 mb-3">Classify your Gmail inbox with AI in seconds</p>
+      </header>
+      <section className="w-full max-w-lg bg-zinc-900 rounded-xl shadow-lg p-7 mb-10 flex flex-col gap-5 border border-zinc-800">
+        <div className="flex items-center justify-between">
+          {session ? (
+            <>
+              <span className="text-xs text-zinc-300">Signed in as <span className="font-bold text-purple-400">{session.user?.email}</span></span>
+              <button className="ml-2 text-xs px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 transition font-semibold" onClick={() => signOut()}>Sign out</button>
+            </>
+          ) : (
+            <button className="w-full text-base px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 transition font-semibold" onClick={() => signIn("google")}>Sign in with Google</button>
+          )}
         </div>
-        <div className="flex gap-3 items-end mb-5">
-          <div>
-            <label className="block text-xs font-semibold mb-1">OpenAI API key</label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={handleApiKeyChange}
-              className="w-52 px-3 py-1 border rounded"
-              placeholder="sk-..."
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold mb-1">Limit</label>
-            <input
-              type="number"
-              value={limit}
-              min={1}
-              max={50}
-              onChange={handleLimitChange}
-              className="w-20 px-3 py-1 border rounded"
-            />
-          </div>
-          <button
-            className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 disabled:bg-blue-300"
-            onClick={fetchEmails}
-            disabled={loading || processing}
-          >
-            {loading ? "Fetching..." : "Fetch"}
-          </button>
-          <button
-            className="bg-green-600 text-white rounded px-4 py-2 hover:bg-green-700 disabled:bg-green-300"
-            onClick={classifyEmails}
-            disabled={processing || emails.length === 0}
-          >
-            {processing ? "Classifying..." : "Fetch & Classify"}
-          </button>
+        <div className="flex flex-col gap-2">
+          <label className="text-xs text-zinc-400" htmlFor="api-key">OpenAI API key</label>
+          <input
+            id="api-key"
+            className="w-full px-3 py-2 rounded bg-zinc-800 text-zinc-100 placeholder-zinc-500 border border-zinc-700"
+            type="password"
+            placeholder="sk-..."
+            value={apiKey}
+            onChange={e => setApiKey(e.target.value)}
+          />
         </div>
-        {error && (
-          <div className="bg-red-100 text-red-600 rounded p-2 mb-4">{error}</div>
-        )}
-
-        {/* EMAILS */}
-        {Object.keys(grouped).length > 0 ? (
-          <div className="mt-8 space-y-8">
-            {Object.keys(grouped).map(cat => (
-              <div key={cat}>
-                <h3 className="text-lg font-bold mb-2 capitalize">{cat}</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {grouped[cat].map(email => (
-                    <div key={email.id} className="bg-gray-50 rounded shadow p-3 border">
-                      <div className="text-xs mb-1 text-gray-600">{email.from} — {email.date}</div>
-                      <div className="font-semibold mb-1">{email.subject || "(No subject)"}</div>
-                      <div className="text-xs mb-1 text-gray-600">{email.snippet}</div>
-                      <pre className="text-xs text-gray-800 mt-1 whitespace-pre-wrap">{email.body}</pre>
-                    </div>
-                  ))}
+        <div className="flex gap-2 items-center">
+          <label className="text-xs text-zinc-400" htmlFor="limit">Limit</label>
+          <input
+            id="limit"
+            type="number"
+            min={1}
+            max={100}
+            value={limit}
+            className="w-16 px-2 py-1 rounded bg-zinc-800 text-zinc-100 border border-zinc-700"
+            onChange={e => setLimit(Number(e.target.value))}
+          />
+          <button className="flex-1 text-base px-4 py-2 rounded bg-purple-600 hover:bg-purple-500 transition font-semibold" onClick={() => {/* fetch logic */}}>Fetch</button>
+          <button className="flex-1 text-base px-4 py-2 rounded bg-cyan-600 hover:bg-cyan-500 transition font-semibold ml-2" onClick={() => {/* classify + fetch logic */}}>Fetch &amp; Classify</button>
+        </div>
+      </section>
+      <section className="w-full max-w-2xl">
+        {loading ? (
+          <div className="flex items-center justify-center text-xl font-bold text-purple-400">Loading...</div>
+        ) : emails.length === 0 ? (
+          <div className="text-base text-zinc-400 text-center border border-zinc-800 rounded p-6">
+            No emails loaded.<br />Click "Fetch" to load Gmail messages.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {emails.map((email, idx) => (
+              <div key={email.id || idx} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 shadow hover:shadow-lg transition">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="px-2 py-1 text-xs rounded bg-cyan-800 font-semibold text-white">{email.category ?? "Unclassified"}</span>
+                  <span className="text-xs font-mono text-zinc-500">{email.id}</span>
                 </div>
+                <div className="font-bold text-lg mb-1 text-zinc-100">{email.subject}</div>
+                <div className="text-zinc-400 text-sm">{email.snippet}</div>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="mt-8 text-gray-400 text-center">
-            No emails loaded. Click "Fetch" to load Gmail messages.
-          </div>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
