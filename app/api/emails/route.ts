@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 
+console.log('>>> [API] /api/emails/route.ts loaded');
+
 export async function POST(req: Request) {
+  console.log('>>> [API] /api/emails POST handler fired');
   try {
-    // TODO: Use session to fetch Gmail emails!
-    // For testing, return dummy emails:
     return NextResponse.json({
       emails: [
         {
-          id: "test1",
-          subject: "Demo Email",
-          snippet: "This is a demo snippet.",
-          body: "Full email body.",
-          from: "test@example.com",
+          id: "001",
+          subject: "Dummy Email",
+          snippet: "This is a test email for Fetch.",
+          body: "Hello! This is a test email body.",
+          from: "test@fetch.com",
           date: new Date().toISOString(),
           category: "Unclassified"
         }
