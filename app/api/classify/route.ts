@@ -1,63 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { NextResponse } from "next/server";
 
-// Email type may be defined elsewhere
-interface Email {
-  id: string;
-  subject: string;
-  snippet: string;
-  body: string;
-  from: string;
-  date: string;
-  category?: string;
-}
-
-const CATEGORIES = [
-  "Important",
-  "Promotions",
-  "Social",
-  "Marketing",
-  "Spam",
-  "General",
-];
-
-function buildPrompt(batch: Email[]): string {
-  return `
-You are an email classification assistant. Given the following emails, classify each one into the most appropriate category from: Important, Promotions, Social, Marketing, Spam, General.
-
-For each email, use the fields: id, subject, snippet, and body.
-
-Respond ONLY with a valid JSON array of objects in this format:
-[
-  { "id": "<email_id>", "category": "<category>" },
-  ...
-]
-Emails:
-${JSON.stringify(batch)}
-`;
-}
-
-export async function POST(req: NextRequest) {
-  const { apiKey, emails } = await req.json();
-  const openai = new OpenAI({ apiKey });
-
-  const prompt = buildPrompt(emails);
-
-  const completion = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
-    messages: [{ role: "system", content: prompt }],
-    max_tokens: 512,
-    temperature: 0.2,
-  });
-
-  // Extract assistant reply, parse to JSON, and send back
-  const content = completion.choices[0]?.message?.content?.trim() || "[]";
-  let categories: any[] = [];
+export async function POST(req: Request) {
   try {
-    categories = JSON.parse(content);
-  } catch {
-    categories = [];
+    // TODO: Add classification logic with OpenAI
+    // For testing, return dummy classified emails:
+    return NextResponse.json({
+      emails: [
+        {
+          id: "class1",
+          subject: "Classified Email",
+          snippet: "This is a classified snippet.",
+          body: "Full classified email body.",
+          from: "ai@example.com",
+          date: new Date().toISOString(),
+          category: "Important"
+        }
+      ]
+    });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to classify emails" }, { status: 500 });
   }
-
-  return NextResponse.json({ categories });
 }
