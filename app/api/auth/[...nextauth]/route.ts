@@ -4,23 +4,10 @@ import GoogleProvider from "next-auth/providers/google";
 import { NextRequest, NextResponse } from "next/server";
 
 export const authOptions: NextAuthOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly"
-        }
-      }
-    })
-  ],
-  session: {
-    strategy: "jwt"
-  },
+  // ... your providers, session, etc.
+
   callbacks: {
     async jwt({ token, account }) {
-      // Persist acess_token and refresh_token
       if (account) {
         token.access_token = account.access_token;
         token.refresh_token = account.refresh_token;
@@ -29,14 +16,14 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Send access_token to the client
+      // Add these 3 lines wrapped with (session as any)
       if (token) {
-        session.access_token = token.access_token;
-        session.refresh_token = token.refresh_token;
-        session.expires_at = token.expires_at;
+        (session as any).access_token = token.access_token;
+        (session as any).refresh_token = token.refresh_token;
+        (session as any).expires_at = token.expires_at;
       }
       return session;
-    }
+    },
   }
 };
 
