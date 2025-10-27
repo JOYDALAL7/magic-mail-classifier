@@ -1,11 +1,19 @@
-// /app/api/auth/[...nextauth]/route.ts
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { NextRequest, NextResponse } from "next/server";
 
 export const authOptions: NextAuthOptions = {
-  // ... your providers, session, etc.
-
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+        },
+      },
+    }),
+  ],
+  session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, account }) {
       if (account) {
@@ -16,7 +24,6 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Add these 3 lines wrapped with (session as any)
       if (token) {
         (session as any).access_token = token.access_token;
         (session as any).refresh_token = token.refresh_token;
@@ -24,9 +31,8 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-  }
+  },
 };
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };
