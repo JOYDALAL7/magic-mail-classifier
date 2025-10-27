@@ -3,12 +3,25 @@
 import { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 
+// Define the Email type
+type Email = {
+  id: string;
+  subject: string;
+  snippet: string;
+  body: string;
+  from: string;
+  date: string;
+  category?: string;
+};
+
 export default function HomePage() {
   const { data: session } = useSession();
   const [apiKey, setApiKey] = useState("");
   const [limit, setLimit] = useState(15);
-  const [emails, setEmails] = useState([]);
+  const [emails, setEmails] = useState<Email[]>([]); // <-- Email[] typed state
   const [loading, setLoading] = useState(false);
+
+  // ...fetch and classify logic here
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-800 text-zinc-100 font-sans px-4 py-8 flex flex-col items-center">
