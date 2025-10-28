@@ -5,7 +5,12 @@ import EmailGrid from "@/components/EmailGrid";
 export default function Page() {
   const { data: session, status } = useSession();
 
-  if (status === "loading") return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>;
+  if (status === "loading")
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white">
+        Loading...
+      </div>
+    );
 
   if (!session)
     return (
@@ -19,6 +24,9 @@ export default function Page() {
       </div>
     );
 
+  // Use type assertion or optional chaining with fallback since accessToken is not on Session type by default
+  const accessToken = (session as any)?.accessToken ?? "";
+
   return (
     <EmailGrid
       user={{
@@ -26,7 +34,7 @@ export default function Page() {
         email: session.user?.email ?? "",
         image: session.user?.image ?? "",
       }}
-      accessToken={session.accessToken as string}
+      accessToken={accessToken}
       onLogout={() => signOut()}
     />
   );
