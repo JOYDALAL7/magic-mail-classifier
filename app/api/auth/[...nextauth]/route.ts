@@ -1,7 +1,12 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { JWT } from "next-auth/jwt";
+import { Account, Session } from "next-auth";
 
-export const authOptions = {
+// ============================
+// AUTH CONFIGURATION
+// ============================
+export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -11,31 +16,46 @@ export const authOptions = {
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
+          scope:
+            "openid email profile https://www.googleapis.com/auth/gmail.readonly",
         },
       },
     }),
   ],
+
   callbacks: {
-    async jwt({ token, account }) {
+    // 🔹 Handle JWT (stores access token)
+    async jwt({
+      token,
+      account,
+    }: {
+      token: JWT;
+      account?: Account | null;
+    }) {
       if (account) {
         token.accessToken = account.access_token;
       }
       return token;
     },
-    async session({ session, token }) {
-      // Attach the accessToken to the session object
-      session.accessToken = token.accessToken;
+
+    // 🔹 Attach token to session
+    async session({
+      session,
+      token,
+    }: {
+      session: Session;
+      token: JWT;
+    }) {
+      (session as any).accessToken = token.accessToken;
       return session;
     },
   },
-  // Add this if you want to restrict sign-in to specific domains:
-  // pages: {
-  //   signIn: '/auth/signin',
-  // },
-  // session: { strategy: 'jwt' }, // Enable JWT sessions (optional, recommended)
+
   secret: process.env.NEXTAUTH_SECRET as string,
 };
 
+// ============================
+// HANDLER (for App Router)
+// ============================
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };
