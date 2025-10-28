@@ -1,15 +1,22 @@
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 
 export async function GET(request: Request) {
+  // Fetch the NextAuth session (type-safe)
   const session = await getServerSession(authOptions);
-  const accessToken = session?.accessToken;
+
+  // Use type assertion to get accessToken, as it isn't in Session type by default
+  const accessToken = (session as any)?.accessToken as string | undefined;
+
   if (!accessToken) {
-    return new Response(JSON.stringify({ error: "No access token" }), { status: 401 });
+    return new Response(
+      JSON.stringify({ error: "No access token found in session" }),
+      { status: 401 }
+    );
   }
 
   try {
-    // 1. Get latest message IDs
+    // List the latest 10 messages
     const listRes = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=10`,
       {
@@ -17,9 +24,15 @@ export async function GET(request: Request) {
       }
     );
     const list = await listRes.json();
-    if (!list.messages) throw new Error("No messages found");
 
-    // 2. Fetch details for each message
+    if (!list.messages) {
+      return new Response(
+        JSON.stringify({ emails: [], message: "No messages found" }),
+        { status: 200 }
+      );
+    }
+
+    // Fetch message details concurrently
     const emails = await Promise.all(
       list.messages.map(async (msg: any) => {
         const detailRes = await fetch(
@@ -27,11 +40,14 @@ export async function GET(request: Request) {
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
         const detail = await detailRes.json();
+
         const headers = detail.payload.headers;
         const getHeader = (name: string) =>
-          headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || "";
+          headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())
+            ?.value ?? "";
+
         return {
-          id: msg.id,
+          id: detail.id,
           sender: getHeader("From"),
           subject: getHeader("Subject"),
           snippet: detail.snippet,
@@ -41,7 +57,10 @@ export async function GET(request: Request) {
     );
 
     return new Response(JSON.stringify({ emails }), { status: 200 });
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message || "Error fetching emails" }), { status: 500 });
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({ error: err.message || "Failed to fetch emails" }),
+      { status: 500 }
+    );
   }
 }
