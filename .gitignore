@@ -1,4 +1,8 @@
 node_modules/
 .env.local
 credentials.json
+<<<<<<< HEAD
 *.log
+=======
+
+>>>>>>> 02e098794b16c5131bd576a742c4f58d5d519dbe
